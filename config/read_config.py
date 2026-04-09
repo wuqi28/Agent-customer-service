@@ -38,3 +38,20 @@ base_url = config["llm"]["base_url"]
 
 deepseek_api_key = config["route_llm"]["deepseek_api_key"]
 route_model = config["route_llm"]["model"]
+
+# md5文件路径参数
+md5_file_name = config["md5_file_name"]
+
+# Embedding模型相关参数
+qwen_chat_model_name = config["qwen_chat_model_name"]
+qwen_embedding_model_name = config["qwen_embedding_model_name"]
+
+# Chroma向量数据库相关参数
+collection_name = config["chroma"]["collection_name"]
+persist_directory = config["chroma"]["persist_directory"]
+allow_types = config["chroma"]["allow_types"]
+
+# 文本分割器相关参数
+chunk_size = config["splitter"]["chunk_size"]
+chunk_overlap = config["splitter"]["chunk_overlap"]
+separators = config["splitter"]["separators"]

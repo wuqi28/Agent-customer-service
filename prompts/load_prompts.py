@@ -19,10 +19,5 @@ def _load_prompt_text(filename: str) -> str:
         return f.read()
 
 
-# ==========================================
-# 在这里预先加载所有的提示词，暴露为全局变量
-# 其他文件直接 import 这些变量即可
-# ==========================================
-
 # 读取 router_prompt.txt 的内容并赋值给 ROUTER_PROMPT 变量
 ROUTER_PROMPT = _load_prompt_text("router_prompt.txt")
