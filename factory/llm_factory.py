@@ -7,9 +7,10 @@ from langchain_core.embeddings import Embeddings
 
 # 具体的模型类
 from langchain_deepseek import ChatDeepSeek
+from langchain_community.chat_models import ChatTongyi
 from langchain_community.embeddings import DashScopeEmbeddings
 
-from config.read_config import deepseek_api_key, route_model, qwen_embedding_model_name
+from config.read_config import deepseek_api_key, route_model, qwen_embedding_model_name, qwen_chat_model_name
 
 
 class BaseModelFactory(ABC):
@@ -40,10 +41,27 @@ class DeepseekChatModelFactory(BaseModelFactory):
         )
 
 
+class QwenChatModelFactory(BaseModelFactory):
+    """
+    千问大模型工厂，用于RAG
+    """
+
+    def generator(self) -> Optional[Embeddings | BaseChatModel]:
+        return ChatTongyi(
+            model=qwen_chat_model_name,
+            temperature=0
+        )
+
+
 class DashScopeEmbeddingsFactory(BaseModelFactory):
+    """
+    Embedding大模型
+    """
+
     def generator(self) -> Optional[Embeddings | BaseChatModel]:
         return DashScopeEmbeddings(model=qwen_embedding_model_name)
 
 
 deepseek_chat_factory = DeepseekChatModelFactory()
 dashscope_embedding_factory = DashScopeEmbeddingsFactory()
+qwen_chat_factory = QwenChatModelFactory()

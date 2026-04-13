@@ -21,3 +21,4 @@ def _load_prompt_text(filename: str) -> str:
 
 # 读取 router_prompt.txt 的内容并赋值给 ROUTER_PROMPT 变量
 ROUTER_PROMPT = _load_prompt_text("router_prompt.txt")
+RAG_PROMPT = _load_prompt_text("rag_prompt.txt")

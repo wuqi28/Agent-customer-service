@@ -59,5 +59,5 @@ def build_graph():
 
 if __name__ == '__main__':
     graph = build_graph()
-    res = graph.invoke({"user_input": "帮我查询订单号12345678"})
+    res = graph.invoke({"user_input": "机器人如何保养"})
     print(res)
