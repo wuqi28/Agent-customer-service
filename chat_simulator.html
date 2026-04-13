@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>酒店管理系统 - 智能客服联调台</title>
+    <style>
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background-color: #f4f7f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .header { margin-bottom: 20px; text-align: center; color: #2c3e50; }
+        .status-bar { margin-bottom: 10px; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; transition: all 0.3s; }
+        .status-ai { background: #e3f2fd; color: #1976d2; border: 1px solid #2196f3; }
+        .status-human { background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; }
+
+        .container { display: flex; gap: 30px; width: 100%; max-width: 1100px; }
+        .chat-box { flex: 1; background: white; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); display: flex; flex-direction: column; height: 650px; position: relative; }
+        .box-header { padding: 18px; color: white; font-weight: bold; text-align: center; border-radius: 16px 16px 0 0; }
+        .user-header { background: linear-gradient(135deg, #07c160, #06ad56); }
+        .agent-header { background: linear-gradient(135deg, #1677ff, #0958d9); }
+
+        .chat-history { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #fafafa; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; position: relative; word-wrap: break-word; }
+        .msg.left { align-self: flex-start; background: white; border: 1px solid #e8e8e8; color: #333; }
+        .msg.right { align-self: flex-end; color: white; }
+        .user-window .msg.right { background: #07c160; }
+        .agent-window .msg.right { background: #1677ff; }
+        .role-tag { font-size: 10px; margin-bottom: 4px; display: block; color: #888; }
+
+        .input-area { display: flex; padding: 20px; background: white; border-top: 1px solid #f0f0f0; gap: 10px; border-radius: 0 0 16px 16px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; outline: none; transition: border 0.3s; }
+        input[type="text"]:focus { border-color: #40a9ff; }
+        button { padding: 10px 24px; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold; transition: opacity 0.3s; }
+        button:hover { opacity: 0.8; }
+        .btn-send-user { background: #07c160; }
+        .btn-send-agent { background: #1677ff; }
+        .btn-end { background: #ff4d4f; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>🏨 酒店智能客服 - 人机协作系统</h2>
+        <div id="modeStatus" class="status-bar status-ai">当前状态：🤖 AI 助手提供服务</div>
+    </div>
+
+    <div class="container">
+        <div class="chat-box user-window">
+            <div class="box-header user-header">微信/App 用户端</div>
+            <div class="chat-history" id="userHistory"></div>
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="输入消息..." onkeypress="handleEnter(event, 'user')">
+                <button class="btn-send-user" onclick="handleUserSend()">发送</button>
+            </div>
+        </div>
+
+        <div class="chat-box agent-window">
+            <div class="box-header agent-header">人工客服后台</div>
+            <div class="chat-history" id="agentHistory"></div>
+            <div class="input-area">
+                <input type="text" id="agentInput" placeholder="请输入人工回复..." onkeypress="handleEnter(event, 'agent')">
+                <button class="btn-send-agent" onclick="handleAgentSend()">发送</button>
+                <button class="btn-end" onclick="handleEndChat()">结束服务</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const USER_ID = "user04"; // 模拟固定 User ID
+        const MAIN_API = "http://127.0.0.1:8001/api/chat";
+        const WS_API = `ws://127.0.0.1:8000/ws/human_chat/${USER_ID}`;
+
+        let currentMode = "ai"; // "ai" 或 "human"
+        let ws = null;
+
+        /**
+         * 1. 核心：处理用户发送消息
+         */
+        async function handleUserSend() {
+            const inputEle = document.getElementById('userInput');
+            const text = inputEle.value.trim();
+            if (!text) return;
+
+            // 1.1 发送请求到 main.py (HTTP)
+            try {
+                const response = await fetch(MAIN_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: USER_ID, message: text })
+                });
+                const data = await response.json();
+
+                // 1.2 渲染返回的历史记录
+                renderHistory(data.history);
+
+                // 1.3 如果模式切换到了 human，自动开启 WebSocket
+                if (data.mode === "human" && currentMode === "ai") {
+                    switchToHumanMode();
+                }
+            } catch (error) {
+                console.error("请求失败:", error);
+                alert("无法连接到 API 服务 (8001端口)");
+            }
+            inputEle.value = '';
+        }
+
+        /**
+         * 2. 核心：切换到人工模式并连接 WebSocket
+         */
+        function switchToHumanMode() {
+            currentMode = "human";
+            const statusEle = document.getElementById('modeStatus');
+            statusEle.innerText = "🚨 当前状态：👨‍💻 人工客服接管中";
+            statusEle.className = "status-bar status-human";
+
+            // 建立 WebSocket 连接
+            ws = new WebSocket(WS_API);
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                // 如果客服回复了
+                if (data.reply_from_agent) {
+                    appendSingleMsg('userHistory', '人工客服', data.reply_from_agent, 'left');
+                }
+
+                // 如果会话被客服结束
+                if (data.status === "chat_ended") {
+                    location.reload(); // 简单处理：重载页面恢复 AI 模式
+                }
+            };
+        }
+
+        /**
+         * 3. 客服端发送消息
+         */
+        function handleAgentSend() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert("当前不在人工模式，或未连接！"); return;
+            }
+            const inputEle = document.getElementById('agentInput');
+            const text = inputEle.value.trim();
+            if (!text) return;
+
+            ws.send(JSON.stringify({ role: "agent", text: text, action: "chat" }));
+            appendSingleMsg('agentHistory', '我(客服)', text, 'right');
+            appendSingleMsg('userHistory', '客服', text, 'left'); // 同步显示在用户端
+            inputEle.value = '';
+        }
+
+        /**
+         * 4. 客服点击结束服务
+         */
+        function handleEndChat() {
+            if (!ws) return;
+            ws.send(JSON.stringify({ role: "agent", text: "服务已结束", action: "end" }));
+        }
+
+        /**
+         * 辅助：渲染整个历史记录
+         */
+        function renderHistory(history) {
+            const userBox = document.getElementById('userHistory');
+            const agentBox = document.getElementById('agentHistory');
+            userBox.innerHTML = '';
+            agentBox.innerHTML = '';
+
+            history.forEach(item => {
+                const align = (item.role === 'user') ? 'right' : 'left';
+                const roleName = (item.role === 'user') ? '用户' : '智能助手';
+                appendSingleMsg('userHistory', roleName, item.content, align);
+
+                // 同步渲染客服端看到的内容
+                const agentAlign = (item.role === 'user') ? 'left' : 'right';
+                appendSingleMsg('agentHistory', roleName, item.content, agentAlign);
+            });
+        }
+
+        /**
+         * 辅助：添加单条消息气泡
+         */
+        function appendSingleMsg(containerId, role, text, align) {
+            const container = document.getElementById(containerId);
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${align}`;
+            msgDiv.innerHTML = `<span class="role-tag">${role}</span>${text}`;
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleEnter(e, role) {
+            if (e.key === 'Enter') {
+                if (role === 'user') handleUserSend();
+                else handleAgentSend();
+            }
+        }
+    </script>
+</body>
+</html>

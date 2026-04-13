@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     graph = build_graph()
     res = graph.invoke(
-        {"user_input": "还记得我是谁吗，帮我总结之前你给我的回答"},
+        {"user_input": "你好"},
         config=user04
     )
     print(res)
