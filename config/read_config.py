@@ -55,3 +55,6 @@ allow_types = config["chroma"]["allow_types"]
 chunk_size = config["splitter"]["chunk_size"]
 chunk_overlap = config["splitter"]["chunk_overlap"]
 separators = config["splitter"]["separators"]
+
+# postgresql
+db_uri = config["postgresql"]["db_uri"]

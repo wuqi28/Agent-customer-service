@@ -43,7 +43,7 @@ class DeepseekChatModelFactory(BaseModelFactory):
 
 class QwenChatModelFactory(BaseModelFactory):
     """
-    千问大模型工厂，用于RAG
+    千问大模型工厂，用于RAG和Chat
     """
 
     def generator(self) -> Optional[Embeddings | BaseChatModel]:
