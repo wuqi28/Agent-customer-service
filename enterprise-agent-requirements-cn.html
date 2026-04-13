@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业级智能客服Agent系统 - 需求文档</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", "PingFang SC", -apple-system, sans-serif; line-height: 1.8; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 50px 40px; border-radius: 16px; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; margin-bottom: 15px; }
+        .level { background: white; padding: 30px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .level h2 { color: #667eea; border-bottom: 3px solid #667eea; padding-bottom: 12px; margin-bottom: 25px; font-size: 1.6em; }
+        .level h3 { color: #764ba2; margin: 25px 0 15px; font-size: 1.2em; }
+        .level h4 { color: #555; margin: 20px 0 12px; }
+        .requirement { background: #f8f9fa; border-left: 4px solid #667eea; padding: 18px 22px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+        .requirement.critical { border-left-color: #e91e63; background: #fff0f5; }
+        .requirement.high { border-left-color: #ff9800; background: #fff8f0; }
+        .tag { display: inline-block; padding: 3px 10px; border-radius: 15px; font-size: 0.8em; margin-right: 5px; color: white; }
+        .tag.p0 { background: #e91e63; }
+        .tag.p1 { background: #667eea; }
+        .tag.p2 { background: #9e9e9e; }
+        .code-block { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; overflow-x: auto; font-family: "Consolas", "Fira Code", monospace; font-size: 0.85em; line-height: 1.6; margin: 15px 0; white-space: pre; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px; text-align: left; }
+        td { border: 1px solid #e0e0e0; padding: 12px; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { padding-left: 28px; margin: 10px 0; }
+        li { margin: 8px 0; }
+        .success { background: #e8f5e9; border-left: 5px solid #4caf50; padding: 18px 22px; margin: 20px 0; border-radius: 0 10px 10px 0; }
+        code { background: #f4f4f4; padding: 2px 7px; border-radius: 4px; font-family: "Consolas", monospace; color: #e83e8c; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>企业级智能客服Agent系统</h1>
+        <p>需求规格说明书 v1.0</p>
+        <p style="margin-top:15px;opacity:0.85;">基于LangGraph的生产级对话系统</p>
+    </div>
+
+    <div class="level">
+        <h2>一、项目概述</h2>
+        <p>构建一个企业级智能客服Agent系统，能够自动处理客户咨询、订单查询、投诉建议等业务，支持人工介入审批，全链路可追踪。</p>
+
+        <h3>核心目标</h3>
+        <ul>
+            <li>7x24小时自动响应客户咨询</li>
+            <li>多意图识别与智能路由</li>
+            <li>知识库RAG精准回答</li>
+            <li>低置信度自动转人工</li>
+            <li>多轮对话记忆上下文</li>
+            <li>全链路追踪与监控</li>
+        </ul>
+
+        <h3>技术栈</h3>
+        <table>
+            <tr><th>组件</th><th>技术选型</th></tr>
+            <tr><td>编排框架</td><td>LangGraph</td></tr>
+            <tr><td>大语言模型</td><td>GPT-4o / Claude 3.5</td></tr>
+            <tr><td>向量存储</td><td>Chroma / FAISS / Pinecone</td></tr>
+            <tr><td>持久化</td><td>PostgreSQL / Redis</td></tr>
+            <tr><td>追踪监控</td><td>LangSmith</td></tr>
+            <tr><td>部署</td><td>Docker</td></tr>
+        </table>
+    </div>
+
+    <div class="level">
+        <h2>二、功能需求</h2>
+
+        <h3><span class="tag p0">P0</span> 核心功能（必须实现）</h3>
+
+        <div class="requirement critical">
+            <h4>REQ-001: 意图识别与路由</h4>
+            <p><strong>描述：</strong>对用户输入进行意图分类，路由到对应的处理分支</p>
+            <p><strong>意图类型：</strong></p>
+            <ul>
+                <li><code>faq</code> - 常见问题咨询（产品功能、使用方法、退换货政策等）</li>
+                <li><code>order</code> - 订单查询（订单状态、物流信息、退款进度等）</li>
+                <li><code>complaint</code> - 投诉建议</li>
+                <li><code>escalation</code> - 要求转人工</li>
+            </ul>
+            <p><strong>实现要求：</strong></p>
+            <ul>
+                <li>使用LLM进行零样本分类</li>
+                <li>返回置信度分数（0-1）</li>
+                <li>置信度低于阈值时自动转人工</li>
+            </ul>
+        </div>
+
+        <div class="requirement critical">
+            <h4>REQ-002: FAQ知识库问答</h4>
+            <p><strong>描述：</strong>基于知识库的RAG问答系统</p>
+            <p><strong>功能要求：</strong></p>
+            <ul>
+                <li>支持上传PDF、Word、TXT等格式的文档</li>
+                <li>文档分块、嵌入、存储到向量数据库</li>
+                <li>语义检索Top-K相关文档</li>
+                <li>基于检索上下文生成回答</li>
+                <li>返回引用来源</li>
+            </ul>
+        </div>
+
+        <div class="requirement critical">
+            <h4>REQ-003: 状态持久化与多轮对话</h4>
+            <p><strong>描述：</strong>支持多轮对话记忆</p>
+            <p><strong>实现要求：</strong></p>
+            <ul>
+                <li>使用Checkpointer保存状态</li>
+                <li>相同session_id共享对话历史</li>
+                <li>支持中断后恢复</li>
+                <li>消息历史通过Reducer累积</li>
+            </ul>
+            <div class="code-block"># 状态定义示例
+class CustomerState(TypedDict):
+    messages: Annotated[list[str], operator.add]  # 累积
+    intent: str
+    confidence: float</div>
+        </div>
+
+        <div class="requirement critical">
+            <h4>REQ-004: Human-in-the-Loop人工介入</h4>
+            <p><strong>描述：</strong>支持人工审批和转人工</p>
+            <p><strong>触发条件：</strong></p>
+            <ul>
+                <li>用户明确要求转人工</li>
+                <li>意图识别置信度 &lt; 0.7</li>
+                <li>RAG检索置信度 &lt; 0.6</li>
+                <li>检测到投诉/负面情绪</li>
+                <li>涉及退款、注销等高风险操作</li>
+            </ul>
+            <p><strong>实现要求：</strong></p>
+            <ul>
+                <li>使用 <code>interrupt()</code> 暂停执行</li>
+                <li>保存当前状态到数据库</li>
+                <li>人工处理后通过 <code>Command(resume=...)</code> 恢复</li>
+                <li>记录人工处理日志</li>
+            </ul>
+        </div>
+
+        <h3 style="margin-top:40px;"><span class="tag p1">P1</span> 重要功能</h3>
+
+        <div class="requirement high">
+            <h4>REQ-005: 订单查询Agent</h4>
+            <p><strong>功能要求：</strong></p>
+            <ul>
+                <li>从用户输入中提取订单号（正则/NER）</li>
+                <li>查询订单状态、物流信息</li>
+                <li>支持订单取消、改地址等操作</li>
+                <li>高风险操作需人工审批</li>
+            </ul>
+        </div>
+
+        <div class="requirement high">
+            <h4>REQ-006: 流式输出</h4>
+            <p><strong>实现要求：</strong></p>
+            <ul>
+                <li>支持 <code>stream_mode="messages"</code> 流式LLM输出</li>
+                <li>支持 <code>stream_mode="updates"</code> 节点更新输出</li>
+                <li>异步API支持 (<code>astream</code>)</li>
+            </ul>
+        </div>
+
+        <div class="requirement high">
+            <h4>REQ-007: 对话摘要与记忆压缩</h4>
+            <p><strong>实现要求：</strong></p>
+            <ul>
+                <li>当消息历史超过阈值（如20条）时触发摘要</li>
+                <li>使用LLM生成对话摘要</li>
+                <li>保留关键信息，压缩历史</li>
+            </ul>
+        </div>
+
+        <h3 style="margin-top:40px;"><span class="tag p2">P2</span> 增强功能</h3>
+
+        <div class="requirement" style="border-left-color:#4caf50;">
+            <h4>REQ-008: 多Agent协作</h4>
+            <ul>
+                <li>独立的RAG Agent子图</li>
+                <li>独立的订单Agent子图</li>
+                <li>主管Agent统一调度</li>
+            </ul>
+        </div>
+
+        <div class="requirement" style="border-left-color:#4caf50;">
+            <h4>REQ-009: 情感分析</h4>
+            <ul>
+                <li>识别正面/中性/负面情绪</li>
+                <li>负面情绪自动提升优先级</li>
+                <li>情绪严重时强制转人工</li>
+            </ul>
+        </div>
+
+        <div class="requirement" style="border-left-color:#4caf50;">
+            <h4>REQ-010: LangSmith全链路追踪</h4>
+            <ul>
+                <li>配置 <code>LANGSMITH_TRACING</code> 环境变量</li>
+                <li>记录每次调用的输入输出</li>
+                <li>追踪节点执行时间和成本</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="level">
+        <h2>三、系统架构</h2>
+
+        <h3>整体架构流程</h3>
+        <div style="background:#f0f4ff;border:2px dashed #c5cae9;border-radius:12px;padding:30px;margin:20px 0;text-align:center;">
+            <div style="margin:10px 0;">
+                <span style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:8px;font-weight:bold;">用户输入</span>
+            </div>
+            <div style="font-size:1.5em;color:#667eea;margin:5px 0;">↓</div>
+            <div style="margin:10px 0;">
+                <span style="display:inline-block;padding:12px 24px;background:#4caf50;color:white;border-radius:8px;font-weight:bold;">意图识别节点</span>
+            </div>
+            <div style="font-size:1.5em;color:#667eea;margin:5px 0;">↓</div>
+            <div style="margin:10px 0;">
+                <span style="display:inline-block;padding:10px 20px;background:#667eea;color:white;border-radius:8px;margin:4px;">FAQ检索</span>
+                <span style="display:inline-block;padding:10px 20px;background:#667eea;color:white;border-radius:8px;margin:4px;">订单查询</span>
+                <span style="display:inline-block;padding:10px 20px;background:#667eea;color:white;border-radius:8px;margin:4px;">投诉处理</span>
+                <span style="display:inline-block;padding:10px 20px;background:#667eea;color:white;border-radius:8px;margin:4px;">转人工</span>
+            </div>
+            <div style="font-size:1.5em;color:#667eea;margin:5px 0;">↓</div>
+            <div style="margin:10px 0;">
+                <span style="display:inline-block;padding:12px 24px;background:#ff9800;color:white;border-radius:8px;font-weight:bold;">置信度检查</span>
+            </div>
+            <div style="font-size:1.5em;color:#667eea;margin:5px 0;">↓</div>
+            <div style="margin:10px 0;">
+                <span style="display:inline-block;padding:10px 20px;background:#667eea;color:white;border-radius:8px;margin:4px;">生成回答</span>
+                <span style="display:inline-block;padding:10px 20px;background:#e91e63;color:white;border-radius:8px;margin:4px;">人工审批 [暂停]</span>
+            </div>
+            <div style="font-size:1.5em;color:#667eea;margin:5px 0;">↓</div>
+            <div style="margin:10px 0;">
+                <span style="display:inline-block;padding:12px 24px;background:#9c27b0;color:white;border-radius:8px;font-weight:bold;">返回用户</span>
+            </div>
+        </div>
+
+        <h3>状态定义</h3>
+        <div class="code-block">状态定义:
+{
+    user_input: str              # 用户输入
+    user_id: str               # 用户ID
+    session_id: str             # 会话ID
+    intent: str                  # 识别出的意图
+    confidence: float           # 置信度分数
+    messages: list[str]         # 对话历史（累积）
+    retrieved_docs: list        # RAG检索结果
+    needs_approval: bool         # 是否需要审批
+    final_response: str          # 最终回复
+    requires_human: bool         # 是否需要人工
+}
+
+状态更新规则:
+- messages: += [新消息]     # 累积
+- retrieved_docs: = [新结果]  # 覆盖
+- final_response: = "..."      # 覆盖
+- confidence: = 0.85          # 覆盖</div>
+    </div>
+
+    <div class="level">
+        <h2>四、验收标准</h2>
+
+        <h3>P0必须通过</h3>
+        <table>
+            <tr><th>测试项</th><th>验收条件</th><th>测试方法</th></tr>
+            <tr>
+                <td>意图识别</td>
+                <td>4种意图分类准确率 > 85%</td>
+                <td>准备100条测试样本，统计准确率</td>
+            </tr>
+            <tr>
+                <td>RAG检索</td>
+                <td>相关文档召回率 > 80%</td>
+                <td>准备QA对，测试召回效果</td>
+            </tr>
+            <tr>
+                <td>多轮对话</td>
+                <td>相同session_id能记住之前对话</td>
+                <td>测试：问名字->再问名字能否回答</td>
+            </tr>
+            <tr>
+                <td>人工介入</td>
+                <td>低置信度时正确触发interrupt</td>
+                <td>模拟低置信度场景，检查是否暂停</td>
+            </tr>
+            <tr>
+                <td>状态恢复</td>
+                <td>中断后能通过Command恢复</td>
+                <td>触发中断->人工处理->恢复->检查状态</td>
+            </tr>
+        </table>
+
+        <h3>性能要求</h3>
+        <table>
+            <tr><th>指标</th><th>要求</th></tr>
+            <tr><td>首次响应时间</td><td>&lt; 3秒</td></tr>
+            <tr><td>流式首Token</td><td>&lt; 1秒</td></tr>
+            <tr><td>并发支持</td><td>&gt; 100 QPS</td></tr>
+            <tr><td>可用性</td><td>&gt; 99.9%</td></tr>
+        </table>
+    </div>
+
+    <div class="level">
+        <h2>五、项目结构</h2>
+
+        <div class="code-block">enterprise-customer-service/
+├── README.md
+├── requirements.txt
+├── Dockerfile
+│
+├── config/
+│   ├── __init__.py
+│   ├── settings.py              # 配置文件
+│   └── prompts.py              # 提示词模板
+│
+├── graph/
+│   ├── __init__.py
+│   ├── state.py                # 状态定义
+│   ├── customer_graph.py       # 主图定义
+│   └── nodes/
+│       ├── __init__.py
+│       ├── router.py            # 意图路由
+│       ├── faq_agent.py        # FAQ处理
+│       ├── order_agent.py      # 订单处理
+│       ├── rag_retrieval.py    # RAG检索
+│       ├── approval.py         # 人工审批
+│       └── response.py          # 回答生成
+│
+├── tools/
+│   ├── __init__.py
+│   ├── search.py              # 搜索工具
+│   ├── database.py           # 数据库工具
+│   └── api.py               # 外部API
+│
+├── services/
+│   ├── __init__.py
+│   ├── knowledge_base.py      # 知识库服务
+│   └── vectorstore.py        # 向量存储服务
+│
+├── api/
+│   ├── __init__.py
+│   ├── chat.py              # 对话API
+│   └── admin.py             # 管理API
+│
+└── tests/
+    ├── __init__.py
+    ├── test_router.py
+    ├── test_rag.py
+    ├── test_graph.py
+    └── test_integration.py</div>
+
+        <h3>关键文件说明</h3>
+        <table>
+            <tr><th>文件</th><th>职责</th><th>预估行数</th></tr>
+            <tr><td>state.py</td><td>定义TypedDict状态和Reducer</td><td>50-80</td></tr>
+            <tr><td>customer_graph.py</td><td>定义图结构、节点、边</td><td>100-150</td></tr>
+            <tr><td>router.py</td><td>意图识别与路由</td><td>50-80</td></tr>
+            <tr><td>rag_retrieval.py</td><td>RAG检索与生成</td><td>80-120</td></tr>
+            <tr><td>approval.py</td><td>人工介入与恢复</td><td>60-100</td></tr>
+        </table>
+    </div>
+
+    <div class="level">
+        <h2>六、技术实现提示</h2>
+
+        <h3>1. 状态累积（messages）</h3>
+        <div class="code-block">from typing import TypedDict, Annotated
+import operator
+
+class State(TypedDict):
+    messages: Annotated[list[str], operator.add]
+    # 每次返回 {"messages": ["new"]} 会自动追加到列表</div>
+
+        <h3>2. 条件路由</h3>
+        <div class="code-block">def route(state: State) -> str:
+    if state["intent"] == "faq":
+        return "faq_node"
+    elif state["intent"] == "order":
+        return "order_node"
+    else:
+        return "human_node"
+
+graph.add_conditional_edges("classifier", route, {
+    "faq_node": "faq_node",
+    "order_node": "order_node",
+    "human_node": "human_node",
+})</div>
+
+        <h3>3. 中断与恢复</h3>
+        <div class="code-block">from langgraph.types import interrupt, Command
+
+def approval_node(state: State):
+    approved = interrupt("等待人工审批...")
+    return {"approved": approved}
+
+# 恢复执行
+result = graph.invoke(Command(resume=True), config=config)</div>
+
+        <h3>4. Checkpointer持久化</h3>
+        <div class="code-block">from langgraph.checkpoint.postgres import PostgresSaver
+
+checkpointer = PostgresSaver.from_conn_string(
+    "postgresql://user:pass@host:5432/db"
+)
+
+app = graph.compile(checkpointer=checkpointer)
+
+# 使用thread_id区分不同会话
+config = {"configurable": {"thread_id": "user-123-session-1"}}
+result = app.invoke({"input": "hello"}, config=config)</div>
+    </div>
+
+    <div class="level">
+        <h2>七、开发计划</h2>
+
+        <h3>建议周期（2-3周）</h3>
+        <table>
+            <tr><th>阶段</th><th>时间</th><th>任务</th><th>交付物</th></tr>
+            <tr>
+                <td rowspan="2">第一阶段</td>
+                <td rowspan="2">第一周</td>
+                <td>环境搭建、项目结构</td>
+                <td>可运行的空项目</td>
+            </tr>
+            <tr>
+                <td>核心状态定义、主图骨架</td>
+                <td>State定义、Graph框架</td>
+            </tr>
+            <tr>
+                <td rowspan="2">第二阶段</td>
+                <td rowspan="2">第二周</td>
+                <td>意图识别、RAG检索</td>
+                <td>FAQ问答功能</td>
+            </tr>
+            <tr>
+                <td>订单查询、状态持久化</td>
+                <td>多轮对话支持</td>
+            </tr>
+            <tr>
+                <td rowspan="2">第三阶段</td>
+                <td rowspan="2">第三周</td>
+                <td>人工介入、工作流</td>
+                <td>中断恢复功能</td>
+            </tr>
+            <tr>
+                <td>测试、优化、部署</td>
+                <td>可部署的Docker镜像</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="level">
+        <h2>八，参考资源</h2>
+        <ul>
+            <li><strong>LangGraph官方文档：</strong>https://docs.langchain.com/oss/python/langgraph</li>
+            <li><strong>官方示例代码：</strong>https://github.com/langchain-ai/langgraph/tree/main/examples</li>
+            <li><strong>API Reference：</strong>https://reference.langchain.com/python/langgraph</li>
+            <li><strong>LangSmith：</strong>https://smith.langchain.com</li>
+        </ul>
+
+        <div class="success">
+            <strong>需求文档完成！</strong><br>
+            按照此需求文档实现，可以构建一个生产级的企业智能客服系统。
+            从P0核心功能开始，逐步完善P1、P2功能。
+        </div>
+    </div>
+
+</body>
+</html>
