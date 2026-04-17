@@ -58,3 +58,6 @@ separators = config["splitter"]["separators"]
 
 # postgresql
 db_uri = config["postgresql"]["db_uri"]
+
+# mysql
+mysql_db_uri = config["mysql"]["db_uri"]

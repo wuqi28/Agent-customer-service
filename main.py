@@ -22,19 +22,19 @@ class ChatRequest(BaseModel):
     message: str
 
 
-def format_messages(messages: list) -> List[Dict]:
+def format_messages(messages: list[str]) -> List[Dict]:
     """将 LangChain 的消息对象转为前端易读的字典格式"""
+    AGENT_PREFIXES = ("chat_agent:", "faq_agent:", "human_agent:", "order_agent:")
     formatted = []
     for msg in messages:
-        if isinstance(msg, HumanMessage):
-            formatted.append({"role": "user", "content": msg.content})
-        elif isinstance(msg, AIMessage):
-            # 处理人工客服的特殊前缀或普通 AI 回复
-            content = msg.content
-            role = "agent" if "[人工客服]" in content else "ai"
+        if msg.startswith("user: "):
+            formatted.append({"role": "user", "content": msg.replace("user:", "").strip()})
+        elif msg.startswith(AGENT_PREFIXES):
+            split_msg = msg.split(":", 1)
+            role = split_msg[0].strip()
+            content = split_msg[1].strip()
             formatted.append({"role": role, "content": content})
-        elif isinstance(msg, str):  # 兼容字符串格式
-            formatted.append({"role": "unknown", "content": msg})
+
     return formatted
 
 
@@ -48,7 +48,7 @@ async def chat_endpoint(req: ChatRequest):
 
     if is_suspended:
         # 人工模式下：不跑 AI，直接把消息存进数据库，并拉取历史返回
-        graph.update_state(config, {"messages": [HumanMessage(content=req.message)]})
+        graph.update_state(config, {"messages": [f"user: {req.message}"]})
         # 重新获取更新后的状态
         new_state = graph.get_state(config)
         return {
@@ -57,11 +57,10 @@ async def chat_endpoint(req: ChatRequest):
             "reply": "人工客服正在接入，请稍候..."
         }
 
-    # 2. AI 模式：运行大模型
-    # 注意：这里我们传入 user_input，图会自动流转
+    # 2. AI 模式
     res = graph.invoke({"user_input": req.message, "user_id": req.user_id}, config=config)
 
-    # 3. 运行后检查：是否刚刚触发了中断（踩了刹车）？
+    # 3. 运行后检查是否需要人工接管
     post_run_state = graph.get_state(config)
     now_suspended = post_run_state.tasks and any(task.interrupts for task in post_run_state.tasks)
 

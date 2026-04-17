@@ -4,6 +4,7 @@ from typing import Optional, Union
 # LangChain 核心基类
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
+from langchain_openai import ChatOpenAI
 
 # 具体的模型类
 from langchain_deepseek import ChatDeepSeek
@@ -11,6 +12,7 @@ from langchain_community.chat_models import ChatTongyi
 from langchain_community.embeddings import DashScopeEmbeddings
 
 from config.read_config import deepseek_api_key, route_model, qwen_embedding_model_name, qwen_chat_model_name
+from config.read_config import minimax_api_key, model, base_url
 
 
 class BaseModelFactory(ABC):
@@ -53,6 +55,17 @@ class QwenChatModelFactory(BaseModelFactory):
         )
 
 
+class MinimaxChatModelFactory(BaseModelFactory):
+
+    def generator(self, **kwargs) -> Optional[BaseChatModel | Embeddings]:
+        return ChatOpenAI(
+            model=model,
+            api_key=minimax_api_key,
+            base_url=base_url,
+            temperature=0
+        )
+
+
 class DashScopeEmbeddingsFactory(BaseModelFactory):
     """
     Embedding大模型
@@ -65,3 +78,4 @@ class DashScopeEmbeddingsFactory(BaseModelFactory):
 deepseek_chat_factory = DeepseekChatModelFactory()
 dashscope_embedding_factory = DashScopeEmbeddingsFactory()
 qwen_chat_factory = QwenChatModelFactory()
+minimax_chat_factory = MinimaxChatModelFactory()

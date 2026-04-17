@@ -24,14 +24,24 @@
         .agent-window .msg.right { background: #1677ff; }
         .role-tag { font-size: 10px; margin-bottom: 4px; display: block; color: #888; }
 
+        /* 不同 Agent 类型的气泡颜色 */
+        .msg.agent-human { background: #1677ff; color: white; }
+        .msg.agent-chat { background: #722ed1; color: white; }
+        .msg.agent-faq { background: #d46b08; color: white; }
+        .user-window .msg.agent-human,
+        .user-window .msg.agent-chat,
+        .user-window .msg.agent-faq { background: white; border: 1px solid #e8e8e8; color: #333; }
+
         .input-area { display: flex; padding: 20px; background: white; border-top: 1px solid #f0f0f0; gap: 10px; border-radius: 0 0 16px 16px; }
         input[type="text"] { flex: 1; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; outline: none; transition: border 0.3s; }
         input[type="text"]:focus { border-color: #40a9ff; }
         button { padding: 10px 24px; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold; transition: opacity 0.3s; }
         button:hover { opacity: 0.8; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-send-user { background: #07c160; }
         .btn-send-agent { background: #1677ff; }
         .btn-end { background: #ff4d4f; }
+        .btn-loading { background: #999 !important; }
     </style>
 </head>
 <body>
@@ -39,6 +49,11 @@
     <div class="header">
         <h2>🏨 酒店智能客服 - 人机协作系统</h2>
         <div id="modeStatus" class="status-bar status-ai">当前状态：🤖 AI 助手提供服务</div>
+        <div class="user-id-input" style="margin-top: 15px;">
+            <label for="userIdInput">User ID: </label>
+            <input type="text" id="userIdInput" value="user04" placeholder="输入 User ID" style="padding: 8px; border: 1px solid #d9d9d9; border-radius: 8px; width: 150px;">
+            <button onclick="connectUser()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">连接</button>
+        </div>
     </div>
 
     <div class="container">
@@ -63,27 +78,71 @@
     </div>
 
     <script>
-        const USER_ID = "user04"; // 模拟固定 User ID
         const MAIN_API = "http://127.0.0.1:8001/api/chat";
-        const WS_API = `ws://127.0.0.1:8000/ws/human_chat/${USER_ID}`;
 
+        let USER_ID = "user04";
+        let WS_API = `ws://127.0.0.1:8000/ws/human_chat/${USER_ID}`;
         let currentMode = "ai"; // "ai" 或 "human"
         let ws = null;
+
+        /**
+         * 连接指定 user_id，重置状态
+         */
+        function connectUser() {
+            const inputEle = document.getElementById('userIdInput');
+            const newUserId = inputEle.value.trim();
+            if (!newUserId) return;
+
+            USER_ID = newUserId;
+            WS_API = `ws://127.0.0.1:8000/ws/human_chat/${USER_ID}`;
+            currentMode = "ai";
+
+            // 关闭之前的 WebSocket
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            // 清空聊天记录
+            document.getElementById('userHistory').innerHTML = '';
+            document.getElementById('agentHistory').innerHTML = '';
+
+            // 重置状态显示
+            const statusEle = document.getElementById('modeStatus');
+            statusEle.innerText = "当前状态：🤖 AI 助手提供服务";
+            statusEle.className = "status-bar status-ai";
+
+            alert(`已切换到用户: ${USER_ID}`);
+        }
 
         /**
          * 1. 核心：处理用户发送消息
          */
         async function handleUserSend() {
+            if (!USER_ID) {
+                alert("请先输入 User ID 并点击连接");
+                return;
+            }
             const inputEle = document.getElementById('userInput');
+            const sendBtn = document.querySelector('.btn-send-user');
             const text = inputEle.value.trim();
             if (!text) return;
+
+            // 立即清空输入框，避免卡顿感
+            const sentText = text;
+            inputEle.value = '';
+
+            // 禁用按钮，显示 loading 状态
+            sendBtn.disabled = true;
+            sendBtn.classList.add('btn-loading');
+            sendBtn.textContent = '发送中...';
 
             // 1.1 发送请求到 main.py (HTTP)
             try {
                 const response = await fetch(MAIN_API, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: USER_ID, message: text })
+                    body: JSON.stringify({ user_id: USER_ID, message: sentText })
                 });
                 const data = await response.json();
 
@@ -97,8 +156,12 @@
             } catch (error) {
                 console.error("请求失败:", error);
                 alert("无法连接到 API 服务 (8001端口)");
+            } finally {
+                // 恢复按钮状态
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('btn-loading');
+                sendBtn.textContent = '发送';
             }
-            inputEle.value = '';
         }
 
         /**
@@ -154,7 +217,7 @@
         }
 
         /**
-         * 辅助：渲染整个历史记录
+         * 辅助：渲染整个历史记录（显示 user 和各类 Agent 消息）
          */
         function renderHistory(history) {
             const userBox = document.getElementById('userHistory');
@@ -162,24 +225,44 @@
             userBox.innerHTML = '';
             agentBox.innerHTML = '';
 
-            history.forEach(item => {
-                const align = (item.role === 'user') ? 'right' : 'left';
-                const roleName = (item.role === 'user') ? '用户' : '智能助手';
-                appendSingleMsg('userHistory', roleName, item.content, align);
+            // 定义 Agent 类型映射
+            const agentConfig = {
+                'human_assist': { name: '人工客服', class: 'agent-human' },
+                'chat_agent': { name: 'Chat Agent', class: 'agent-chat' },
+                'faq_agent': { name: 'FAQ Agent', class: 'agent-faq' }
+            };
 
-                // 同步渲染客服端看到的内容
-                const agentAlign = (item.role === 'user') ? 'left' : 'right';
-                appendSingleMsg('agentHistory', roleName, item.content, agentAlign);
+            // 展示 user 和各类 Agent 消息
+            const filteredHistory = history.filter(item =>
+                item.role === 'user' || agentConfig[item.role]
+            );
+
+            filteredHistory.forEach(item => {
+                if (item.role === 'user') {
+                    // 用户消息：显示在右侧（绿色）
+                    appendSingleMsg('userHistory', '用户', item.content, 'right');
+                    appendSingleMsg('agentHistory', '用户', item.content, 'left');
+                } else if (agentConfig[item.role]) {
+                    // Agent 消息：显示在左侧（各 Agent 有不同颜色）
+                    const config = agentConfig[item.role];
+                    appendSingleMsg('userHistory', config.name, item.content, 'left', config.class);
+                    appendSingleMsg('agentHistory', config.name, item.content, 'right', config.class);
+                }
             });
         }
 
         /**
          * 辅助：添加单条消息气泡
+         * @param {string} containerId - 容器ID
+         * @param {string} role - 角色名称
+         * @param {string} text - 消息内容
+         * @param {string} align - 位置 'left' 或 'right'
+         * @param {string} extraClass - 额外的 CSS 类名（如 agent 类型）
          */
-        function appendSingleMsg(containerId, role, text, align) {
+        function appendSingleMsg(containerId, role, text, align, extraClass = '') {
             const container = document.getElementById(containerId);
             const msgDiv = document.createElement('div');
-            msgDiv.className = `msg ${align}`;
+            msgDiv.className = `msg ${align} ${extraClass}`.trim();
             msgDiv.innerHTML = `<span class="role-tag">${role}</span>${text}`;
             container.appendChild(msgDiv);
             container.scrollTop = container.scrollHeight;

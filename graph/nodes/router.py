@@ -33,7 +33,7 @@ def router_node(state: CustomerState):
     res = router_chain.invoke({"user_input": state["user_input"]})
 
     return {
-        "messages": [f"User: {state['user_input']}", f"intent: {res.reason}"],
+        "messages": [f"user: {state['user_input']}", f"intent: {res.reason}"],
         "intent": res.intent,
         "confidence": res.confidence
     }

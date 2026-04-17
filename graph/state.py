@@ -11,6 +11,8 @@ class CustomerState(TypedDict, total=False):
     user_input: str
     user_id: str
     session_id: str
+    summarize_text: str
+    summarized_status: bool
 
     # --- 意图识别结果 (覆盖更新) ---
     intent: str

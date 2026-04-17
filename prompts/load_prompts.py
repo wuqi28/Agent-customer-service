@@ -23,6 +23,7 @@ def _load_prompt_text(filename: str) -> str:
 ROUTER_PROMPT = _load_prompt_text("router_prompt.txt")
 RAG_PROMPT = _load_prompt_text("rag_prompt.txt")
 CHAT_PROMPT = _load_prompt_text("chat_prompt.txt")
+SUMMARIZE_PROMPT = _load_prompt_text("summarize_prompt.txt")
 
 if __name__ == '__main__':
     print(CHAT_PROMPT)

@@ -19,11 +19,11 @@ class ChatService:
 
     def ask(self, user_input, history):
         document_history = []  # 把历史消息数组拼接为list[Document]
-        AGENT_PREFIXES = ("chat_agent:", "faq_agent:", "human_agent:", "order_agent:")
+        AGENT_PREFIXES = ("chat_agent:", "faq_agent:", "human_agent:", "order_agent:", "summarized: ")
         for msg in history:
             if isinstance(msg, str):
-                if msg.startswith("User:"):
-                    document_history.append(HumanMessage(content=msg.replace("User:", "").strip()))
+                if msg.startswith("user:"):
+                    document_history.append(HumanMessage(content=msg.replace("user:", "").strip()))
                 elif msg.startswith(AGENT_PREFIXES):
                     reply_content = msg.split(":", 1)[-1].strip()
                     document_history.append(AIMessage(content=reply_content))

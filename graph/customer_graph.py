@@ -20,9 +20,8 @@ def route_func(state: CustomerState) -> str:
     intent = state["intent"]
     confidence = state["confidence"]
 
-    # 置信度过低大模型都无法理解就转人工
     if confidence < 0.7:
-        return "escalation"
+        return "human"
 
     # 根据意图分发节点
     if intent == "faq":
@@ -81,11 +80,14 @@ def build_graph():
 
 
 if __name__ == '__main__':
-    user04 = {"configurable": {"thread_id": "user04"}}
+    user04 = {"configurable": {"thread_id": "user05"}}
 
     graph = build_graph()
     res = graph.invoke(
-        {"user_input": "你好"},
+        {
+            "user_input": "你好，在吗",
+            "user_id": "user05"
+        },
         config=user04
     )
     print(res)
